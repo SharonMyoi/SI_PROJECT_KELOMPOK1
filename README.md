@@ -1,7 +1,7 @@
 # SI_PROJECT_KELOMPOK1
 Praktikum Proyek Sistem Informasi
-#Pengembangan Sistem Informasi Manajemen Produksi 
-#Pengembangan Sistem Informasi Manajemen Produksi (SiProduksi)
+#Pembangunan Sistem Informasi Manajemen Produksi 
+#Pembangunan Sistem Informasi Manajemen Produksi (SiProduksi)
 Untuk UMKM RieFa Collection
 ...
 #Tim Pengembang
