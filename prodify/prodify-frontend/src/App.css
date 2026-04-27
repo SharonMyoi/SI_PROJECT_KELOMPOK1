@@ -1,0 +1,208 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: #f9fafb;
+  overflow: hidden; 
+}
+
+/* KIRI */
+.login-left {
+  flex: 1;
+  background: linear-gradient(135deg, #a67c52 0%, #6b4423 100%);
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+}
+
+.brand-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: inline-block;
+  width: fit-content;
+  font-size: 0.9rem;
+  margin-bottom: 30px;
+}
+
+.brand-title {
+  font-size: 3.5rem;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.brand-title span {
+  color: #fcd34d; /* Kuning emas */
+}
+
+.brand-subtitle {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.9;
+  max-width: 80%;
+  margin-bottom: 50px;
+}
+
+.brand-footer {
+  margin-top: auto;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* KANAN */
+.login-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+}
+
+.form-wrapper {
+  width: 100%;
+  max-width: 450px;
+  padding: 40px;
+}
+
+.form-title {
+  font-size: 2rem;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.form-subtitle {
+  color: #6b7280;
+  margin-bottom: 30px;
+  font-size: 0.95rem;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+  border-color: #facc15;
+}
+
+.btn-submit {
+  width: 100%;
+  background-color: #facc15;
+  color: #453303;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 30px;
+}
+
+.btn-submit:hover {
+  background-color: #eab308;
+}
+
+/* DEMO BUTTONS */
+.demo-section p {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #9ca3af;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+.demo-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.demo-buttons button {
+  flex: 1;
+  padding: 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s;
+}
+
+.demo-buttons button:hover {
+  border-color: #a67c52;
+}
+
+.demo-buttons strong {
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+.demo-buttons span {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.input-error {
+  border-color: #ef4444 !important; /* Merah */
+  color: #ef4444;
+}
+
+.input-error::placeholder {
+  color: #fca5a5;
+}
+
+.text-error {
+  color: #ef4444 !important;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.forgot-password {
+  text-align: center;
+  margin-top: -15px;
+  margin-bottom: 30px;
+}
+
+.forgot-password a {
+  color: #374151;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.forgot-password a:hover {
+  color: #111827;
+}
