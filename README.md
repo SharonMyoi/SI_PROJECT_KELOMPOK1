@@ -7,4 +7,4 @@ Untuk UMKM RieFa Collection
 #Tim Pengembang
 [Faarizal Ramadhan]-Product Owner
 [Meyla Azzahra]-Scrum Master
-[Mischa Altha Keefa, Fahrezi Fahar, Rifky Pratama, Muhammad Ilyassa, Devan Christovano Prabowo]-Developer
+[Mischa Altha Keefa, Fahrezi Fahar, Rifky Pratama, Muhammad Ilyassa, Hamdan Maulana, Devan Christovano Prabowo]-Developer
