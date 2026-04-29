@@ -53,7 +53,6 @@ export default function Dashboard() {
         </div>
 
         <div className="user-profile-side">
-           <img src={`https://ui-avatars.com/api/?name=${user.name}&background=facc15&color=fff`} alt="avatar" />
            <div className="user-info">
               <p className="u-name">{user.name}</p>
               <p className="u-role">{user.role.toUpperCase()}</p>
@@ -64,7 +63,6 @@ export default function Dashboard() {
           <div className="nav-item active">
             <i className="fa-solid fa-house"></i> Dashboard
           </div>
-          {/* Menu Laporan dan Notifikasi sudah dihapus sementara */}
         </nav>
 
         <button className="btn-logout-side" onClick={handleLogout}>

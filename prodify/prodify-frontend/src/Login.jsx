@@ -47,7 +47,7 @@ export default function Login() {
         <div className="brand-badge">✨ Sistem Informasi Manajemen Produksi</div>
         <h1 className="brand-title">Kelola produksi <span>rajut handmade</span><br/>dengan rapi & real-time.</h1>
         <p className="brand-subtitle">Pusatkan pesanan, distribusikan task ke pengrajin di rumah masing-masing, pantau stok, dan hitung upah otomatis berdasarkan poin.</p>
-        <div className="brand-footer">© 2026 Rief's Collection</div>
+        <div className="brand-footer">© 2026 Riefa's Collection</div>
       </div>
 
       <div className="login-right">
@@ -60,7 +60,7 @@ export default function Login() {
               <label className={isError ? 'text-error' : ''}>Username</label>
               <input 
                 type="text" 
-                placeholder="👤  Masukkan username" 
+                placeholder="Masukkan username" 
                 value={username} 
                 onChange={(e) => setUsername(e.target.value)} 
                 className={isError ? 'input-error' : ''}
@@ -71,7 +71,7 @@ export default function Login() {
               <label className={isError ? 'text-error' : ''}>Password</label>
               <input 
                 type="password" 
-                placeholder="🔒  ••••••••" 
+                placeholder="••••••••" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 className={isError ? 'input-error' : ''}
@@ -93,9 +93,9 @@ export default function Login() {
           <div className="demo-section">
             <p>AKUN DEMO (KLIK UNTUK ISI OTOMATIS)</p>
             <div className="demo-buttons">
-              <button type="button" onClick={() => fillDemo('admin')}><strong>Admin</strong><br/><span>admin1</span></button>
-              <button type="button" onClick={() => fillDemo('owner')}><strong>Owner</strong><br/><span>owner1</span></button>
-              <button type="button" onClick={() => fillDemo('pengrajin')}><strong>Pengrajin</strong><br/><span>pengrajin1</span></button>
+              <button type="button" onClick={() => fillDemo('admin')}><strong>Admin</strong><br/><span>admin</span></button>
+              <button type="button" onClick={() => fillDemo('owner')}><strong>Owner</strong><br/><span>owner</span></button>
+              <button type="button" onClick={() => fillDemo('pengrajin')}><strong>Pengrajin</strong><br/><span>pengrajin</span></button>
             </div>
           </div>
         </div>
