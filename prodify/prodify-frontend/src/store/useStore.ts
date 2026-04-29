@@ -24,6 +24,10 @@ interface State {
   updateProductStock: (productId: string, delta: number) => void;
 
   markNotificationRead: (id: string) => void;
+
+  addUser: (u: Omit<User, "id" | "joinedAt">) => { ok: boolean; message?: string };
+  updateUser: (id: string, patch: Partial<Omit<User, "id" | "role" | "joinedAt">>) => { ok: boolean; message?: string };
+  deleteUser: (id: string) => { ok: boolean; message?: string };
 }
 
 const code = (n: number) => `ORD-${String(n).padStart(4, "0")}`;
@@ -159,6 +163,55 @@ export const useStore = create<State>()(
             n.id === id ? { ...n, read: true } : n
           ),
         }),
+
+      addUser: (u) => {
+        const username = u.username.trim().toLowerCase();
+        if (!username || !u.name.trim() || !u.password) {
+          return { ok: false, message: "Nama, username, dan password wajib diisi." };
+        }
+        if (get().users.some((x) => x.username.toLowerCase() === username)) {
+          return { ok: false, message: "Username sudah dipakai." };
+        }
+        const newUser: User = {
+          ...u,
+          username,
+          name: u.name.trim(),
+          id: `u${Date.now()}`,
+          joinedAt: new Date().toISOString(),
+        };
+        set({ users: [...get().users, newUser] });
+        return { ok: true };
+      },
+
+      updateUser: (id, patch) => {
+        const exists = get().users.find((x) => x.id === id);
+        if (!exists) return { ok: false, message: "Pengrajin tidak ditemukan." };
+        if (patch.username) {
+          const uname = patch.username.trim().toLowerCase();
+          if (get().users.some((x) => x.id !== id && x.username.toLowerCase() === uname)) {
+            return { ok: false, message: "Username sudah dipakai." };
+          }
+          patch.username = uname;
+        }
+        if (patch.name) patch.name = patch.name.trim();
+        set({
+          users: get().users.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+        });
+        return { ok: true };
+      },
+
+      deleteUser: (id) => {
+        const user = get().users.find((x) => x.id === id);
+        if (!user) return { ok: false, message: "Pengrajin tidak ditemukan." };
+        const hasActive = get().orders.some((o) =>
+          o.subtasks.some((s) => s.assignedTo === id && s.status !== "Selesai")
+        );
+        if (hasActive) {
+          return { ok: false, message: "Tidak bisa menghapus: pengrajin masih punya task aktif." };
+        }
+        set({ users: get().users.filter((x) => x.id !== id) });
+        return { ok: true };
+      },
     }),
     { name: "prodify-store" }
   )

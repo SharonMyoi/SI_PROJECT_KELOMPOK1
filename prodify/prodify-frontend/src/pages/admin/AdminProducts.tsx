@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useStore, formatRupiah } from "@/store/useStore";
 import { PageHeader } from "@/components/prodify/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, AlertTriangle, Package } from "lucide-react";
+import { Plus, AlertTriangle, Package, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +19,30 @@ export default function AdminProducts() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ProductCategory>("Boneka");
-  const [image, setImage] = useState("📦");
+  const [image, setImage] = useState<string>("📦");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [basePrice, setBasePrice] = useState(50000);
   const [stock, setStock] = useState(0);
   const [minStock, setMinStock] = useState(5);
   const [parts, setParts] = useState<ProductPart[]>([{ name: "Kepala", point: 4000 }]);
+
+  const isImageUrl = (s: string) => s.startsWith("data:image") || s.startsWith("http") || s.startsWith("/");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("File harus berupa gambar");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ukuran gambar maksimal 2MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const togglePart = (name: Specialization) => {
     setParts((p) =>
@@ -46,7 +65,7 @@ export default function AdminProducts() {
     });
     toast.success("Produk ditambahkan");
     setOpen(false);
-    setName(""); setParts([{ name: "Kepala", point: 4000 }]); setStock(0);
+    setName(""); setParts([{ name: "Kepala", point: 4000 }]); setStock(0); setImage("📦");
   };
 
   return (
@@ -63,7 +82,11 @@ export default function AdminProducts() {
           return (
             <Card key={p.id} className="p-5 hover:shadow-[var(--shadow-card)] transition-shadow">
               <div className="flex items-start justify-between gap-3">
-                <div className="text-5xl">{p.image}</div>
+                {isImageUrl(p.image) ? (
+                  <img src={p.image} alt={p.name} className="h-16 w-16 rounded-lg object-cover border border-border" />
+                ) : (
+                  <div className="text-5xl">{p.image}</div>
+                )}
                 {low && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/15 text-destructive text-[11px] font-semibold">
                     <AlertTriangle className="h-3 w-3" /> Menipis
@@ -100,10 +123,43 @@ export default function AdminProducts() {
             <DialogTitle>Tambah Produk</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-[80px_1fr] gap-3">
+            <div className="grid grid-cols-[96px_1fr] gap-3">
               <div className="space-y-2">
-                <Label>Emoji</Label>
-                <Input value={image} onChange={(e) => setImage(e.target.value)} className="text-center text-2xl" />
+                <Label>Gambar</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative h-24 w-24 rounded-lg border-2 border-dashed border-border hover:border-primary transition-colors flex items-center justify-center bg-muted/30 overflow-hidden group"
+                >
+                  {isImageUrl(image) ? (
+                    <>
+                      <img src={image} alt="preview" className="h-full w-full object-cover" />
+                      <span
+                        role="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setImage("📦");
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="absolute top-1 right-1 h-5 w-5 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary">
+                      <Upload className="h-5 w-5" />
+                      <span className="text-[10px]">Upload</span>
+                    </div>
+                  )}
+                </button>
               </div>
               <div className="space-y-2">
                 <Label>Nama Produk</Label>
