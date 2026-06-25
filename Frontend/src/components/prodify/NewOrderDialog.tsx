@@ -95,7 +95,7 @@ export const NewOrderDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
 
   const handleSubmit = async () => {
     if (!productId) {
-      toast.error("Pilih produk terlebih dahulu Bos");
+      toast.error("Pilih produk terlebih dahulu");
       return;
     }
 
@@ -216,7 +216,7 @@ export const NewOrderDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
                             if (!isZero) {
                               setSelectedLocationId(loc.id);
                             } else {
-                              toast.error(`Stok di ${loc.name} kosong, pilih cabang lain Bos.`);
+                              toast.error(`Stok di ${loc.name} kosong, pilih cabang lain.`);
                             }
                           }}
                           className={cn(

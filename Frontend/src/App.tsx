@@ -25,6 +25,7 @@ import PengrajinHistory from "./pages/pengrajin/PengrajinHistory";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import OwnerReports from "./pages/owner/OwnerReports";
 import OwnerPengrajinReport from "./pages/owner/OwnerPengrajinReport";
+import OwnerProducts from "./pages/owner/OwnerProducts";
 import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
@@ -65,9 +66,11 @@ const App = () => {
               <Route path="/pengrajin" element={<PengrajinTasks />} />
               <Route path="/pengrajin/active" element={<PengrajinActiveTasks />} />
               <Route path="/pengrajin/history" element={<PengrajinHistory />} />
+              <Route path="/pengrajin/notifications" element={<Notifications />} />
               <Route path="/owner" element={<OwnerDashboard />} />
               <Route path="/owner/reports" element={<OwnerReports />} />
               <Route path="/owner/reports/pengrajin" element={<OwnerPengrajinReport />} />
+              <Route path="/owner/products" element={<OwnerProducts />} />
               <Route path="/owner/notifications" element={<Notifications />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

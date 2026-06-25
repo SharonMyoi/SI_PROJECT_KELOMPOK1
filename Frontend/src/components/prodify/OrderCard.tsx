@@ -35,7 +35,8 @@ export const OrderCard = ({ order, onClick, compact }: Props) => {
     <Card
       onClick={onClick}
       className={cn(
-        "p-4 cursor-pointer hover:shadow-[var(--shadow-card)] transition-all flex flex-col justify-between h-full",
+        "p-4 hover:shadow-[var(--shadow-card)] transition-all flex flex-col justify-between h-full",
+        onClick && "cursor-pointer",
         urgentClass
       )}
     >

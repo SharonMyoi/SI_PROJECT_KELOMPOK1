@@ -182,6 +182,18 @@ export default function AdminPengrajin() {
 
   const handleToggle = async () => {
     if (!confirmToggle) return;
+    if (confirmToggle.active !== false) {
+      const activeCount = busyMap.get(confirmToggle.id) ?? 0;
+      if (activeCount > 0) {
+        toast({ 
+          title: "Tidak dapat menonaktifkan", 
+          description: `${confirmToggle.name} masih memiliki ${activeCount} tugas aktif. Selesaikan atau unassign tugas terlebih dahulu.`,
+          variant: "destructive" 
+        });
+        setConfirmToggle(null);
+        return;
+      }
+    }
     const res = await toggleUserActive(confirmToggle.id);
     if (!res.ok) {
       toast({ title: "Gagal", description: res.message, variant: "destructive" });
@@ -366,8 +378,22 @@ const handleAddMasterSkill = async () => {
                             <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit Detail
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => setConfirmToggle(u)} 
-                            className={cn("gap-2 text-xs font-medium cursor-pointer rounded-lg", inactive ? "text-emerald-600 focus:text-emerald-600" : "text-amber-600 focus:text-amber-600")}
+                            onClick={() => {
+                              if (!inactive && (busyMap.get(u.id) ?? 0) > 0) {
+                                toast({ 
+                                  title: "Tidak dapat menonaktifkan", 
+                                  description: `${u.name} masih memiliki ${busyMap.get(u.id)} tugas aktif. Selesaikan atau unassign tugas terlebih dahulu.`,
+                                  variant: "destructive" 
+                                });
+                                return;
+                              }
+                              setConfirmToggle(u);
+                            }} 
+                            className={cn("gap-2 text-xs font-medium cursor-pointer rounded-lg", 
+                              !inactive && (busyMap.get(u.id) ?? 0) > 0
+                                ? "text-muted-foreground opacity-50"
+                                : inactive ? "text-emerald-600 focus:text-emerald-600" : "text-amber-600 focus:text-amber-600"
+                            )}
                           >
                             {inactive ? <><Power className="h-3.5 w-3.5" /> Aktifkan</> : <><PowerOff className="h-3.5 w-3.5" /> Nonaktifkan</>}
                           </DropdownMenuItem>
@@ -616,7 +642,7 @@ const handleAddMasterSkill = async () => {
 
             <div className="space-y-2">
               <Label className="text-xs font-bold">Spesialisasi</Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1">
                 {availableSkills.map((s) => {
                   const active = form.specializations.includes(s);
                   return (

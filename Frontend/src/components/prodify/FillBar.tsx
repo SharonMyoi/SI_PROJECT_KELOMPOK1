@@ -20,7 +20,7 @@ export function FillBar({ value, max, className, barClassName }: Props) {
   return (
     <div className={cn("h-2.5 rounded-full bg-muted overflow-hidden", className)}>
       <div
-        className={cn("h-full rounded-full transition-all duration-700 ease-out", barClassName)}
+        className={cn("h-full rounded-full transition-all duration-500 ease-out", barClassName)}
         style={{ width: `${width}%` }}
       />
     </div>

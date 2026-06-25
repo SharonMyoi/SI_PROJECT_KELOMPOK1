@@ -13,6 +13,7 @@ const iconMap = {
   task_done: CheckCircle2,
   stock_low: AlertTriangle,
   info: Bell,
+  task_assigned: Bell,
 };
 
 const colorMap = {
@@ -20,6 +21,7 @@ const colorMap = {
   task_done: "bg-success/15 text-success",
   stock_low: "bg-destructive/15 text-destructive",
   info: "bg-primary/15 text-primary-foreground",
+  task_assigned: "bg-secondary/15 text-secondary",
 };
 
 export default function Notifications() {
@@ -27,7 +29,7 @@ export default function Notifications() {
   const list = useMemo(() => {
     if (!currentUser) return [];
     const auto = buildAutoNotifications(orders, products)
-      .filter((n) => !dismissedAutoNotifs.includes(n.id));
+      .map((n) => ({ ...n, read: n.read || dismissedAutoNotifs.includes(n.id) }));
     const merged = [...auto, ...notifications];
     return filterByRole(merged, currentUser.role).sort(
       (a, b) => +new Date(b.date) - +new Date(a.date)

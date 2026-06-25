@@ -277,7 +277,8 @@ export default function Penugasan() {
               <div className="space-y-2 pr-1 pt-1">
                 {currentSubtasks.map(({ order, subtask, daysToDeadline }) => {
                   const active = selectedSubtaskId === subtask.id;
-                  const urgent = daysToDeadline <= 5;
+                  const daysRed = daysToDeadline <= 1;
+                  const daysYellow = daysToDeadline <= 3;
                   
                   return (
                     <button
@@ -287,7 +288,7 @@ export default function Penugasan() {
                         "w-full text-left p-3.5 rounded-xl border transition-all duration-200",
                         active 
                           ? "border-yellow-500 bg-yellow-500/5 shadow-sm ring-1 ring-yellow-500" 
-                          : cn("border-border hover:bg-accent/50", urgent && (order.fastTrack ? "border-l-4 border-l-destructive" : "border-l-4 border-l-warning"))
+                          : cn("border-border hover:bg-accent/50", daysRed ? "border-l-4 border-l-destructive" : daysYellow ? "border-l-4 border-l-warning" : "")
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">

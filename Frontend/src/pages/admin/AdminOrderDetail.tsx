@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getAvailablePengrajin } from "@/lib/waitingList";
 
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, cn } from "@/lib/utils";
+import { daysUntil } from "@/store/useStore";
 
 export default function AdminOrderDetail() {
   const { id } = useParams();
@@ -88,7 +89,17 @@ export default function AdminOrderDetail() {
             <div className="flex items-center gap-2 sm:col-span-2"><MapPin className="h-4 w-4 text-muted-foreground break-words" /> {order.address}</div>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" /> 
-              Tenggat: {new Date(order.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+              <span className={cn(
+                order.status !== "Selesai" && order.status !== "Siap Kirim" && daysUntil(order.deadline) <= 1 ? "text-destructive font-semibold" : "",
+                order.status !== "Selesai" && order.status !== "Siap Kirim" && daysUntil(order.deadline) > 1 && daysUntil(order.deadline) <= 3 ? "text-warning font-semibold" : "",
+              )}>
+                Tenggat: {new Date(order.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                {order.status !== "Selesai" && order.status !== "Siap Kirim" && (
+                  <span className="ml-1">
+                    ({daysUntil(order.deadline) > 0 ? `H-${daysUntil(order.deadline)}` : daysUntil(order.deadline) === 0 ? "Hari ini!" : `Telat ${Math.abs(daysUntil(order.deadline))} hari`})
+                  </span>
+                )}
+              </span>
             </div>
             <div className="flex items-center gap-2"><Package className="h-4 w-4 text-muted-foreground" /> {order.quantity} pcs</div>
             {order.source && (() => {
@@ -194,19 +205,12 @@ export default function AdminOrderDetail() {
         <h2 className="font-bold text-foreground mb-4">Aksi Admin</h2>
         <div className="space-y-3">
           {order.status === "Penyusunan" && order.isOnline && (
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input placeholder="No. Resi pengiriman" value={resi} onChange={(e) => setResiInput(e.target.value)} className="w-full" />
-              <Button
-                onClick={() => {
-                  if (!resi.trim()) return toast.error("Isi nomor resi");
-                  setResi(order.id, resi.trim());
-                  toast.success("Resi tersimpan. Pesanan selesai!");
-                }}
-                className="gap-2 shrink-0 w-full sm:w-auto"
-              >
-                <Truck className="h-4 w-4" /> Input Resi & Selesai
-              </Button>
-            </div>
+            <Button
+              onClick={() => { finishAssembly(order.id); toast.success("Pesanan naik ke Siap Kirim!"); }}
+              className="gap-2 w-full sm:w-auto"
+            >
+              <CheckCircle2 className="h-4 w-4" /> Selesaikan Penyusunan
+            </Button>
           )}
           {order.status === "Penyusunan" && !order.isOnline && (
             <Button

@@ -106,7 +106,7 @@ export interface PointEntry {
 
 export interface Notification {
   id: string;
-  type: "deadline" | "task_done" | "stock_low" | "info";
+  type: "deadline" | "task_done" | "stock_low" | "info" | "task_assigned";
   title: string;
   message: string;
   date: string;

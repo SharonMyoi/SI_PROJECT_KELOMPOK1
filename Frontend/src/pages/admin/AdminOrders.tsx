@@ -36,7 +36,7 @@ import {
 
 const statuses: (OrderStatus | "Semua")[] = ["Semua", "Antrean", "Sedang Dikerjakan", "Penyusunan", "Siap Kirim", "Selesai"];
 
-// REVISI WARNA: Menggunakan kombinasi warna persis dari gambar di atas bos!
+// REVISI WARNA: Menggunakan kombinasi warna persis dari gambar di atas
 const getTabActiveColor = (status: string) => {
   switch (status) {
     case "Antrean":

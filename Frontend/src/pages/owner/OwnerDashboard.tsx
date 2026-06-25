@@ -1,9 +1,11 @@
 // REVISI LOKAL: Mengeluarkan formatRupiah dari import useStore agar dashboard owner tidak crash
+import { useState } from "react";
 import { useStore } from "@/store/useStore";
 import { StatCard } from "@/components/prodify/StatCard";
 import { PageHeader } from "@/components/prodify/PageHeader";
 import { AnimatedNumber } from "@/components/prodify/AnimatedNumber";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ClipboardList, Zap, Users, AlertTriangle, TrendingUp, Package } from "lucide-react";
 import { OrderCard } from "@/components/prodify/OrderCard";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,8 @@ const formatRupiah = (value: number | string) => {
 export default function OwnerDashboard() {
   const { orders, products, users, points } = useStore();
   const activeOrders = orders.filter((o) => o.status !== "Selesai");
+  const [showAllOrders, setShowAllOrders] = useState(false);
+  const displayedOrders = showAllOrders ? activeOrders : activeOrders.slice(0, 9);
   const fastTrack = activeOrders.filter((o) => o.fastTrack);
   const pengrajin = users.filter((u) => u.role === "pengrajin");
   const busyIds = new Set(orders.flatMap((o) => o.subtasks.filter((s) => s.assignedTo && s.status === "Sedang Dikerjakan").map((s) => s.assignedTo!)));
@@ -98,14 +102,23 @@ export default function OwnerDashboard() {
         </div>
       </Card>
 
-      {/* Pesanan Berjalan — 3 grid full width */}
+      {/* Pesanan Berjalan � 3 grid full width */}
       <div>
         <h2 className="font-bold text-foreground mb-4">Pesanan Berjalan</h2>
-        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr">
-          {activeOrders.map((o) => (
-            <OrderCard key={o.id} order={o} />
-          ))}
+        <div className={showAllOrders ? "max-h-[680px] overflow-y-auto pr-1" : ""}>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr">
+            {displayedOrders.map((o) => (
+              <OrderCard key={o.id} order={o} />
+            ))}
+          </div>
         </div>
+        {activeOrders.length > 9 && (
+          <div className="flex justify-center mt-4">
+            <Button variant="outline" size="sm" onClick={() => setShowAllOrders(!showAllOrders)}>
+              {showAllOrders ? "Tampilkan Lebih Sedikit" : "Lihat Semua"}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Stok Menipis di bawah */}
@@ -132,46 +145,48 @@ export default function OwnerDashboard() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card className="p-5 h-full">
-            <h2 className="font-bold text-foreground mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-secondary" /> Pengrajin Terbaik Bulan Ini</h2>
-            <div className="space-y-2">
-              {earnings.map((e, i) => (
-                <div key={e.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
-                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
-                    #{i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate">{e.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{e.tasks} tugas selesai</p>
-                  </div>
-                  <p className="font-bold text-foreground">{formatRupiah(e.total)}</p>
+          <Card className="p-5 flex flex-col">
+            <h2 className="font-bold text-foreground mb-4 flex items-center gap-2 shrink-0"><TrendingUp className="h-4 w-4 text-secondary" /> Pengrajin Terbaik Bulan Ini</h2>
+          <div className="overflow-y-auto min-h-0 max-h-[400px] space-y-2">
+            {earnings.map((e, i) => (
+              <div key={e.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <div className={cn("h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
+                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+                  #{i + 1}
                 </div>
-              ))}
-            </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground truncate">{e.name}</p>
+                  <p className="text-[11px] text-muted-foreground">{e.tasks} tugas selesai</p>
+                </div>
+                <p className="font-bold text-foreground">{formatRupiah(e.total)}</p>
+              </div>
+            ))}
+          </div>
           </Card>
         </div>
         <div>
-          <Card className="p-5 h-full">
-            <h2 className="font-bold text-foreground mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-secondary" /> Status Pengrajin</h2>
-            <div className="space-y-2.5">
-              {pengrajin.map((p) => {
-                const busy = busyIds.has(p.id);
-                const load = workloadMap.get(p.id) ?? 0;
-                return (
-                  <div key={p.id} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground">Beban: {load} tugas aktif</p>
+          <Card className="p-5 flex flex-col">
+            <h2 className="font-bold text-foreground mb-4 flex items-center gap-2 shrink-0"><Users className="h-4 w-4 text-secondary" /> Status Pengrajin</h2>
+            <div className="flex flex-col min-h-0">
+              <div className="overflow-y-auto min-h-0 space-y-2.5 max-h-[400px]">
+                {pengrajin.map((p) => {
+                  const busy = busyIds.has(p.id);
+                  const load = workloadMap.get(p.id) ?? 0;
+                  return (
+                    <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                        <p className="text-[11px] text-muted-foreground">Beban: {load} tugas aktif</p>
+                      </div>
+                      <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-semibold",
+                        busy ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success")}>
+                        <span className={cn("h-1.5 w-1.5 rounded-full", busy ? "bg-destructive" : "bg-success")} />
+                        {busy ? "Sibuk" : "Tersedia"}
+                      </span>
                     </div>
-                    <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-semibold",
-                      busy ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success")}>
-                      <span className={cn("h-1.5 w-1.5 rounded-full", busy ? "bg-destructive" : "bg-success")} />
-                      {busy ? "Sibuk" : "Tersedia"}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </Card>
         </div>

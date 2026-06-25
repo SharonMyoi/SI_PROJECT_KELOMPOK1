@@ -439,7 +439,7 @@ export default function AdminProducts() {
             <tbody className="divide-y divide-border/50 text-sm">
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-yellow-500/[0.04] transition-all duration-150">
+                  <tr key={p.id} className="hover:bg-yellow-500/[0.04] transition-all duration-200">
                     <td className="p-4 pl-5 font-medium text-foreground whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         {isImageUrl(p.image) ? (

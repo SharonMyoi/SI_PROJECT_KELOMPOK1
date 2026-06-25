@@ -327,6 +327,10 @@ export const useStore = create<State>()(
               const r = await supabase.from("categories").select("*").order("name", { ascending: true });
               if (r.data) set({ categories: r.data as CategoryStore[] });
             })
+            .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, async () => {
+              const r = await supabase.from("notifications").select("*").order("date", { ascending: false });
+              set({ notifications: (r.data ?? []).map(mapNotif) });
+            })
             .subscribe();
 
         } catch (error) {
@@ -475,6 +479,22 @@ const activeTasks = orders.reduce((count, order) => {
           method: 'POST',
           body: JSON.stringify({ subtaskId, userId }),
         })
+
+        const state = get()
+        const order = state.orders.find((o) => o.id === orderId)
+        const sub = order?.subtasks.find((s) => s.id === subtaskId)
+        if (order && sub && userId) {
+          await supabase.from("notifications").insert({
+            id: `msg-${Date.now()}`,
+            type: "task_assigned",
+            title: "Tugas Baru",
+            message: `${order.code} · ${order.productName} × ${order.quantity} · ${sub.partName}`,
+            date: new Date().toISOString(),
+            read: false,
+            for_role: "pengrajin",
+          })
+        }
+
         set((state) => ({
           orders: state.orders.map((o) =>
             o.id === orderId ? {
@@ -558,9 +578,9 @@ const activeTasks = orders.reduce((count, order) => {
       },
 
       finishAssembly: async (orderId) => {
-        await apiFetch(`/api/orders/${orderId}/finish`, { method: 'POST' })
+        const { status } = await apiFetch(`/api/orders/${orderId}/finish`, { method: 'POST' })
         set((state) => ({
-          orders: state.orders.map((o) => o.id === orderId ? { ...o, status: 'Selesai' } : o),
+          orders: state.orders.map((o) => o.id === orderId ? { ...o, status } : o),
         }))
       },
 
@@ -672,7 +692,7 @@ const activeTasks = orders.reduce((count, order) => {
 
       addLocation: async (name) => {
         const cleaned = name.trim();
-        if (!cleaned) return { ok: false, message: "Nama toko tidak boleh kosong Bos" };
+        if (!cleaned) return { ok: false, message: "Nama toko tidak boleh kosong" };
         if (get().locations.some((l) => l.name.toLowerCase() === cleaned.toLowerCase())) {
           return { ok: false, message: "Nama toko sudah ada di database" };
         }
@@ -692,7 +712,7 @@ const activeTasks = orders.reduce((count, order) => {
 
       updateLocation: async (id: string, name: string) => {
         const cleaned = name.trim();
-        if (!cleaned) return { ok: false, message: "Nama toko tidak boleh kosong Bos" };
+        if (!cleaned) return { ok: false, message: "Nama toko tidak boleh kosong" };
         if (get().locations.some((l) => l.name.toLowerCase() === cleaned.toLowerCase() && l.id !== id)) {
           return { ok: false, message: "Nama toko sudah ada di database" };
         }
@@ -932,7 +952,10 @@ const activeTasks = orders.reduce((count, order) => {
     {
       name: "knitflow-session",
       storage: createJSONStorage(() => localStorage),
-      partialize: () => ({}),
+      partialize: (state) => ({
+        currentUser: state.currentUser,
+        token: state.token,
+      }),
     }
   )
 );

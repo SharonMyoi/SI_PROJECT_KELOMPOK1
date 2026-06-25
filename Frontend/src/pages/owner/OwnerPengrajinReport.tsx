@@ -98,18 +98,11 @@ export default function OwnerPengrajinReport() {
 
   const availableMonths = useMemo(() => {
     if (!selectedYear) return [];
-    const arr: { key: string; index: number }[] = [];
-    const yearNum = Number(selectedYear);
-    points.forEach((p) => {
-      const d = new Date(p.date);
-      if (d.getFullYear() !== yearNum) return;
-      const k = getMonthKey(yearNum, d.getMonth() + 1);
-      if (!arr.some((a) => a.key === k)) {
-        arr.push({ key: k, index: d.getMonth() + 1 });
-      }
-    });
-    return arr.sort((a, b) => b.index - a.index);
-  }, [selectedYear, points]);
+    return Array.from({ length: 12 }, (_, i) => ({
+      key: getMonthKey(Number(selectedYear), i + 1),
+      index: i + 1,
+    }));
+  }, [selectedYear]);
 
   const currentKey = selectedYear && selectedMonth ? getMonthKey(Number(selectedYear), Number(selectedMonth)) : null;
 
@@ -162,22 +155,54 @@ export default function OwnerPengrajinReport() {
   const activeCount = activePengrajinIds.size;
   const avgUpah = activeCount > 0 ? Math.round(monthTotalUpah / activeCount) : 0;
 
-  const topPengrajin = useMemo(() => {
-    const map = new Map<string, number>();
-    pointsInMonth.forEach((p) => {
-      map.set(p.userId, (map.get(p.userId) ?? 0) + p.point);
-    });
-    return Array.from(map.entries())
-      .map(([userId, total]) => ({
-        userId,
-        name: users.find((u) => u.id === userId)?.name ?? "Unknown",
-        total,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-  }, [pointsInMonth, users]);
+  const dailyUpahTugasData = useMemo(() => {
+    if (!currentKey) return [];
+    const { year, month } = parseMonthKey(currentKey);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const dayMap = new Map<number, { upah: number; tugas: number }>();
+    for (let d = 1; d <= daysInMonth; d++) dayMap.set(d, { upah: 0, tugas: 0 });
 
-  const maxTopValue = topPengrajin[0]?.total ?? 1;
+    pointsInMonth.forEach((p) => {
+      const day = new Date(p.date).getDate();
+      const entry = dayMap.get(day)!;
+      entry.upah += p.point;
+      entry.tugas += 1;
+    });
+
+    return Array.from(dayMap.entries()).map(([day, data]) => ({
+      day: String(day),
+      upah: data.upah,
+      tugas: data.tugas,
+    }));
+  }, [pointsInMonth, currentKey]);
+
+  const yearDetailRows: PengrajinDetail[] = useMemo(() => {
+    const map = new Map<string, PengrajinDetail>();
+    pointsInYear.forEach((p) => {
+      if (!map.has(p.userId)) {
+        const u = users.find((u) => u.id === p.userId);
+        map.set(p.userId, {
+          userId: p.userId,
+          name: u?.name ?? "Unknown",
+          specializations: u?.specializations?.join(", ") || "-",
+          tasks: 0,
+          totalUpah: 0,
+          entries: [],
+        });
+      }
+      const row = map.get(p.userId)!;
+      row.tasks += 1;
+      row.totalUpah += p.point;
+      row.entries.push({
+        date: new Date(p.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }),
+        orderCode: p.orderCode,
+        productName: p.productName,
+        partName: p.partName,
+        point: p.point,
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => b.totalUpah - a.totalUpah);
+  }, [pointsInYear, users]);
 
   const detailRows: PengrajinDetail[] = useMemo(() => {
     const map = new Map<string, PengrajinDetail>();
@@ -326,7 +351,7 @@ export default function OwnerPengrajinReport() {
             <Select
               value={selectedMonth}
               onValueChange={(v) => { setSelectedMonth(v === "all" ? "" : v); setSearchQuery(""); setExpandedId(null); }}
-              disabled={!selectedYear || availableMonths.length === 0}
+              disabled={!selectedYear}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih bulan" />
@@ -397,6 +422,90 @@ export default function OwnerPengrajinReport() {
               </LineChart>
             </ResponsiveContainer>
           </Card>
+
+          {/* DETAIL KINERJA PENGRAJIN - TAHUNAN */}
+          <Card className="overflow-hidden">
+            <div className="p-5 border-b border-border space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="font-bold text-foreground">Detail Kinerja Pengrajin</h2>
+                <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-semibold">
+                  {yearDetailRows.length} pengrajin
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="text-center p-3 font-semibold whitespace-nowrap w-8"></th>
+                    <th className="text-center p-3 font-semibold whitespace-nowrap">Nama</th>
+                    <th className="text-center p-3 font-semibold whitespace-nowrap">Spesialisasi</th>
+                    <th className="text-center p-3 font-semibold whitespace-nowrap">Tugas Selesai</th>
+                    <th className="text-center p-3 font-semibold whitespace-nowrap">Total Upah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {yearDetailRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                        Belum ada data pengrajin.
+                      </td>
+                    </tr>
+                  ) : (
+                    yearDetailRows.map((r, i) => (
+                      <>
+                        <tr
+                          key={r.userId}
+                          className={cn("border-t border-border hover:bg-muted/30 cursor-pointer", i % 2 === 1 && "bg-muted/10")}
+                          onClick={() => setExpandedId(expandedId === r.userId ? null : r.userId)}
+                        >
+                          <td className="p-3 text-center text-muted-foreground">
+                            {expandedId === r.userId ? <ChevronDown className="h-4 w-4 inline" /> : <ChevronRight className="h-4 w-4 inline" />}
+                          </td>
+                          <td className="p-3 text-center font-semibold text-foreground whitespace-nowrap">{r.name}</td>
+                          <td className="p-3 text-center text-muted-foreground text-xs whitespace-nowrap">{r.specializations}</td>
+                          <td className="p-3 text-center font-semibold whitespace-nowrap">{r.tasks}</td>
+                          <td className="p-3 text-center font-bold text-foreground whitespace-nowrap">{formatRupiah(r.totalUpah)}</td>
+                        </tr>
+                        {expandedId === r.userId && (
+                          <tr key={`${r.userId}-detail`}>
+                            <td colSpan={5} className="p-0">
+                              <div className="bg-muted/20 border-t border-border">
+                                {r.entries.length === 0 ? (
+                                  <p className="p-4 text-sm text-muted-foreground text-center">Belum ada pekerjaan.</p>
+                                ) : (
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="text-muted-foreground border-b border-border">
+                                        <th className="p-2 pl-10 text-left font-semibold">Tanggal</th>
+                                        <th className="p-2 text-left font-semibold">Produk</th>
+                                        <th className="p-2 text-left font-semibold">Bagian</th>
+                                        <th className="p-2 text-right font-semibold">Upah</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {r.entries.map((e, j) => (
+                                        <tr key={j} className="border-b border-border/50">
+                                          <td className="p-2 pl-10 text-muted-foreground whitespace-nowrap">{e.date}</td>
+                                          <td className="p-2 text-foreground font-medium whitespace-nowrap">{e.productName}</td>
+                                          <td className="p-2 text-muted-foreground whitespace-nowrap">{e.partName}</td>
+                                          <td className="p-2 text-right text-success font-semibold whitespace-nowrap">+{formatRupiah(e.point)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </>
       )}
 
@@ -460,30 +569,28 @@ export default function OwnerPengrajinReport() {
             </Card>
           </div>
 
+          {/* TREN KINERJA PENGRAJIN */}
           <Card className="p-5">
-            <h2 className="font-bold text-foreground mb-1">Top Pengrajin</h2>
+            <h2 className="font-bold text-foreground mb-1">Tren Kinerja Pengrajin</h2>
             <p className="text-sm text-muted-foreground mb-4">
               {MONTHS[Number(selectedMonth) - 1]} {selectedYear}
             </p>
-            <div className="max-h-[420px] overflow-y-auto space-y-3 pr-1">
-              {topPengrajin.map((item, i) => (
-                <div key={item.userId}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shrink-0">
-                        {i + 1}
-                      </span>
-                      <span className="truncate font-medium text-foreground">{item.name}</span>
-                    </span>
-                    <span className="font-bold text-secondary shrink-0">{formatRupiah(item.total)}</span>
-                  </div>
-                  <FillBar value={item.total} max={maxTopValue} barClassName="bg-gradient-to-r from-primary to-primary-glow" />
-                </div>
-              ))}
-              {topPengrajin.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Belum ada data.</p>
-              )}
-            </div>
+            {dailyUpahTugasData.every((d) => d.upah === 0 && d.tugas === 0) ? (
+              <p className="text-center text-muted-foreground py-8">Belum ada data.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={dailyUpahTugasData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Tanggal", position: "insideBottom", offset: -5, style: { fontSize: 12, fill: "hsl(var(--muted-foreground))" } }} />
+                  <YAxis yAxisId="upah" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}jt` : v >= 1000 ? `${(v / 1000).toFixed(0)}rb` : String(v)} label={{ value: "Upah", angle: -90, position: "insideLeft", style: { fontSize: 12, fill: "hsl(var(--muted-foreground))" } }} />
+                  <YAxis yAxisId="tugas" orientation="right" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Tugas", angle: 90, position: "insideRight", style: { fontSize: 12, fill: "hsl(var(--muted-foreground))" } }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Line yAxisId="upah" type="monotone" dataKey="upah" stroke="#f97316" strokeWidth={2} name="Upah" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line yAxisId="tugas" type="monotone" dataKey="tugas" stroke="#22c55e" strokeWidth={2} name="Tugas Selesai" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </Card>
 
           <Card className="overflow-hidden">

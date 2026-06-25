@@ -38,6 +38,17 @@ users.post('/:id/toggle-active', async (c) => {
   const id = c.req.param('id')
   const { data: target } = await supabaseAdmin.from('users_app').select('active').eq('id', id).single()
   if (!target) return c.json({ error: 'User tidak ditemukan' }, 404)
+
+  if (target.active !== false) {
+    const { count } = await supabaseAdmin.from('subtasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('assigned_to', id)
+      .neq('status', 'Selesai')
+    if (count && count > 0) {
+      return c.json({ error: 'Tidak dapat menonaktifkan: pengrajin masih memiliki tugas aktif. Selesaikan atau unassign tugas terlebih dahulu.' }, 400)
+    }
+  }
+
   const nextActive = !target.active
   const { error } = await supabaseAdmin.from('users_app').update({ active: nextActive }).eq('id', id)
   if (error) return c.json({ error: 'Gagal memperbarui status aktif' }, 500)

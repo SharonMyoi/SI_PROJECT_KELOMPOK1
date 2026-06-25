@@ -314,12 +314,13 @@ orders.post('/:id/finish', async (c) => {
   const id = c.req.param('id')
   const now = new Date().toISOString()
 
-  const { data: currentOrder } = await supabaseAdmin.from('orders').select('status').eq('id', id).single()
+  const { data: currentOrder } = await supabaseAdmin.from('orders').select('status, is_online').eq('id', id).single()
   if (!currentOrder) return c.json({ error: 'Order tidak ditemukan' }, 404)
   if (currentOrder.status === 'Selesai') return c.json({ ok: true })
 
-  await supabaseAdmin.from('orders').update({ status: 'Selesai', updated_at: now }).eq('id', id)
-  return c.json({ ok: true })
+  const nextStatus = currentOrder.is_online ? 'Siap Kirim' : 'Selesai'
+  await supabaseAdmin.from('orders').update({ status: nextStatus, updated_at: now }).eq('id', id)
+  return c.json({ ok: true, status: nextStatus })
 })
 
 orders.post('/:id/set-resi', async (c) => {

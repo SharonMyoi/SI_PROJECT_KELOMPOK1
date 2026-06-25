@@ -43,6 +43,7 @@ const navByRole: Record<Role, NavItem[]> = {
   ],
   owner: [
     { to: "/owner", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/owner/products", label: "Produk & Stok", icon: Package },
     { to: "/owner/reports", label: "Laporan Pesanan", icon: FileBarChart },
     { to: "/owner/reports/pengrajin", label: "Laporan Pengrajin", icon: Users },
   ],
@@ -55,11 +56,11 @@ const allowedPrefixes: Record<Role, string[]> = {
 };
 
 const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
-  const { currentUser, logout, notifications, orders, products } = useStore();
+  const { currentUser, logout, notifications, orders, products, dismissedAutoNotifs } = useStore();
   const navigate = useNavigate();
   if (!currentUser) return null;
   const items = navByRole[currentUser.role];
-  const auto = buildAutoNotifications(orders, products);
+  const auto = buildAutoNotifications(orders, products).map((n) => ({ ...n, read: n.read || dismissedAutoNotifs.includes(n.id) }));
   const unread = filterByRole([...auto, ...notifications], currentUser.role).filter((n) => !n.read).length;
   const [showLogout, setShowLogout] = useState(false);
 
@@ -94,7 +95,6 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
             {it.label}
           </NavLink>
         ))}
-        {currentUser.role !== "pengrajin" && (
           <NavLink
             to={`/${currentUser.role}/notifications`}
             onClick={onClose}
@@ -117,7 +117,6 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
               </span>
             )}
           </NavLink>
-        )}
       </nav>
       <div className="p-3 border-t border-border">
         <AlertDialog open={showLogout} onOpenChange={setShowLogout}>

@@ -99,18 +99,11 @@ export default function OwnerReports() {
 
   const availableMonths = useMemo(() => {
     if (!selectedYear) return [];
-    const arr: { key: string; index: number }[] = [];
-    const yearNum = Number(selectedYear);
-    orders.forEach((o) => {
-      const d = new Date(o.createdAt);
-      if (d.getFullYear() !== yearNum) return;
-      const k = getMonthKey(yearNum, d.getMonth() + 1);
-      if (!arr.some((a) => a.key === k)) {
-        arr.push({ key: k, index: d.getMonth() + 1 });
-      }
-    });
-    return arr.sort((a, b) => b.index - a.index);
-  }, [selectedYear, orders]);
+    return Array.from({ length: 12 }, (_, i) => ({
+      key: getMonthKey(Number(selectedYear), i + 1),
+      index: i + 1,
+    }));
+  }, [selectedYear]);
 
   const currentKey = selectedYear && selectedMonth ? getMonthKey(Number(selectedYear), Number(selectedMonth)) : null;
 
@@ -190,6 +183,27 @@ export default function OwnerReports() {
   }, [monthProductQty]);
 
   const maxProductQty = sortedProducts[0]?.[1] ?? 1;
+
+  const dailyTypeData = useMemo(() => {
+    if (!currentKey) return [];
+    const { year, month } = parseMonthKey(currentKey);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const dayMap = new Map<number, { custom: number; readyStock: number }>();
+    for (let d = 1; d <= daysInMonth; d++) dayMap.set(d, { custom: 0, readyStock: 0 });
+
+    ordersInSelectedMonth.forEach((o) => {
+      const day = new Date(o.createdAt).getDate();
+      const entry = dayMap.get(day)!;
+      if (o.type === "custom") entry.custom += o.quantity;
+      else entry.readyStock += o.quantity;
+    });
+
+    return Array.from(dayMap.entries()).map(([day, data]) => ({
+      day: String(day),
+      custom: data.custom,
+      readyStock: data.readyStock,
+    }));
+  }, [ordersInSelectedMonth, currentKey]);
 
   const detailRows: DetailRow[] = useMemo(() => {
     return ordersInSelectedMonth.map((o) => {
@@ -343,7 +357,7 @@ export default function OwnerReports() {
             <Select
               value={selectedMonth}
               onValueChange={(v) => { setSelectedMonth(v === "all" ? "" : v); setSearchQuery(""); }}
-              disabled={!selectedYear || availableMonths.length === 0}
+              disabled={!selectedYear}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih bulan" />
@@ -506,6 +520,29 @@ export default function OwnerReports() {
                 </div>
               ))}
             </div>
+          </Card>
+
+          {/* LINE CHART TIPE PESANAN */}
+          <Card className="p-5">
+            <h2 className="font-bold text-foreground mb-1">Tren Tipe Pesanan</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {MONTHS[Number(selectedMonth) - 1]} {selectedYear}
+            </p>
+            {dailyTypeData.every((d) => d.custom === 0 && d.readyStock === 0) ? (
+              <p className="text-center text-muted-foreground py-8">Belum ada data pesanan.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={dailyTypeData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Tanggal", position: "insideBottom", offset: -5, style: { fontSize: 12, fill: "hsl(var(--muted-foreground))" } }} />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Unit Terjual", angle: -90, position: "insideLeft", style: { fontSize: 12, fill: "hsl(var(--muted-foreground))" } }} allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="custom" stroke="#7c3aed" strokeWidth={2} name="Custom" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="readyStock" stroke="#10b981" strokeWidth={2} name="Ready Stock" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </Card>
 
           <Card className="overflow-hidden">

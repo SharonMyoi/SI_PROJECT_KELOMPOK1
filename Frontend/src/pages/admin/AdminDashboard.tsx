@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useStore, daysUntil } from "@/store/useStore";
 import { StatCard } from "@/components/prodify/StatCard";
 import { PageHeader } from "@/components/prodify/PageHeader";
-import { FillBar } from "@/components/prodify/FillBar";
 import { ClipboardList, Zap, Users, AlertTriangle, Bell, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -11,13 +10,49 @@ import { buildAutoNotifications, filterByRole } from "@/lib/autoNotifications";
 import { getWaitingList, countActiveTasks, getCraftsmanStatus } from "@/lib/waitingList";
 import { StatusBadge } from "@/components/prodify/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OrderStatus } from "@/types";
+
+const PieTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  const { name, value, fill } = payload[0].payload;
+  return (
+    <div className="px-3 py-2 rounded-lg text-xs font-medium shadow-md" style={{ backgroundColor: fill, color: "#fff" }}>
+      {name}: {value} pesanan
+    </div>
+  );
+};
+
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const [display, setDisplay] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    const start = prev.current;
+    const diff = value - start;
+    if (diff === 0) return;
+    const duration = 500;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(start + diff * eased));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+    prev.current = value;
+  }, [value]);
+  return <>{display}</>;
+};
 
 export default function AdminDashboard() {
   const { orders, products, users, notifications, locations } = useStore();
   const navigate = useNavigate();
   const [isAlertHidden, setIsAlertHidden] = useState(false);
   const [isAlertDismissed, setIsAlertDismissed] = useState(false);
+  const [filterYear, setFilterYear] = useState("semua");
+  const [filterMonth, setFilterMonth] = useState("semua");
 
   // --- LOGIKA STOK MENIPIS ---
   const lowStockList = products.flatMap((product) => {
@@ -46,31 +81,51 @@ export default function AdminDashboard() {
     return getCraftsmanStatus(p, active) === "busy";
   }).length;
   
-  const recent = [...activeOrders]
-    .sort((a, b) => Number(b.fastTrack) - Number(a.fastTrack) || new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+  const recent = [...orders]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6);
 
   const allNotifs = filterByRole(
     [...buildAutoNotifications(orders, products), ...notifications],
     "admin"
-  ).slice(0, 5);
+  );
 
   const waitingCount = getWaitingList(orders).length;
   const overload = waitingCount > 10;
 
   const statusList: OrderStatus[] = ["Antrean", "Sedang Dikerjakan", "Penyusunan", "Siap Kirim", "Selesai"];
-  const statusColor: Record<OrderStatus, string> = {
-    Antrean: "bg-[#CA8A04]",
-    "Sedang Dikerjakan": "bg-[#2563EB]",
-    Penyusunan: "bg-[#7c3aed]",
-    "Siap Kirim": "bg-[#ea580c]",
-    Selesai: "bg-[#059669]",
+  const STATUS_HEX: Record<string, string> = {
+    Antrean: "#CA8A04",
+    "Sedang Dikerjakan": "#2563EB",
+    Penyusunan: "#7c3aed",
+    "Siap Kirim": "#ea580c",
+    Selesai: "#059669",
   };
+
+  const years = useMemo(() => {
+    const y = orders.map((o) => new Date(o.createdAt).getFullYear());
+    return [...new Set(y)].sort((a, b) => b - a);
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const d = new Date(o.createdAt);
+      if (filterYear !== "semua" && d.getFullYear() !== Number(filterYear)) return false;
+      if (filterMonth !== "semua" && d.getMonth() + 1 !== Number(filterMonth)) return false;
+      return true;
+    });
+  }, [orders, filterYear, filterMonth]);
+
   const statusCounts = statusList.map((s) => ({
     status: s,
-    count: orders.filter((o) => o.status === s).length,
+    count: filteredOrders.filter((o) => o.status === s).length,
   }));
-  const totalOrders = orders.length;
+  const pieData = statusCounts.map(({ status, count }) => ({
+    name: status,
+    value: count,
+    fill: STATUS_HEX[status],
+  }));
+  const totalOrders = filteredOrders.length;
 
   return (
     <div className="space-y-6">
@@ -124,28 +179,114 @@ export default function AdminDashboard() {
         <button onClick={() => navigate("/admin/products")} className="text-left"><StatCard label="Stok Menipis" value={lowStockList.length} icon={AlertTriangle} variant="warning" /></button>
       </div>
 
-      <Card className="p-5">
-        <h2 className="font-bold text-foreground mb-4">Status Pesanan</h2>
-        <div className="space-y-3">
-          {statusCounts.map(({ status, count }) => (
-            <div key={status}>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-foreground">{status}</span>
-                <span className="text-muted-foreground">{count} pesanan</span>
-              </div>
-              <FillBar value={count} max={totalOrders} barClassName={statusColor[status]} />
-            </div>
-          ))}
-        </div>
-      </Card>
-
+      {/* ROW 1: DISTRIBUSI PESANAN + NOTIFIKASI */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">Pesanan Terbaru</h2>
-            <button onClick={() => navigate("/admin/orders")} className="text-sm font-medium text-secondary hover:text-secondary/80">Lihat semua →</button>
+        <Card className="p-5 lg:col-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-2 shrink-0">
+            <h2 className="font-bold text-foreground">Distribusi Pesanan</h2>
+            <div className="flex items-center gap-2">
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger className="h-8 text-xs w-[125px]">
+                  <SelectValue placeholder="Tahun" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua Tahun</SelectItem>
+                  {years.map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}
+                </SelectContent>
+              </Select>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="h-8 text-xs w-[125px]">
+                  <SelectValue placeholder="Bulan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua Bulan</SelectItem>
+                  {["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"].map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Card className="p-0 overflow-hidden">
+          <div className="flex-1 flex items-center gap-6">
+            {totalOrders === 0 ? (
+              <div className="flex items-center justify-center w-full h-[240px] text-sm text-muted-foreground">
+                Belum ada pesanan
+              </div>
+            ) : (
+              <>
+                <div className="relative shrink-0">
+                  <ResponsiveContainer width={260} height={240}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={115}
+                        dataKey="value"
+                        paddingAngle={3}
+                        strokeWidth={0}
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <span className="text-3xl font-bold text-foreground"><AnimatedNumber value={totalOrders} /></span>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  {statusCounts.map(({ status, count }) => (
+                    <div key={status} className="flex justify-between items-center text-sm">
+                      <span className="text-foreground">{status}</span>
+                      <span className="flex items-center gap-1.5 font-medium text-foreground">
+                        <AnimatedNumber value={count} />
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_HEX[status] }} />
+                      </span>
+                    </div>
+                  ))}
+                  <hr className="border-t border-border my-2" />
+                  <div className="flex justify-between items-center text-sm font-semibold text-foreground">
+                    <span>Total</span>
+                    <span><AnimatedNumber value={totalOrders} /></span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5 flex flex-col">
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="h-4 w-4 text-secondary" />
+            <h2 className="font-bold text-foreground">Notifikasi Terbaru</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
+            {allNotifs.length === 0 && <p className="text-sm text-muted-foreground">Tidak ada notifikasi.</p>}
+            {allNotifs.map((n) => (
+              <div key={n.id} className={cn("p-2.5 rounded-lg text-xs", n.read ? "bg-muted/50" : "bg-primary/10 border border-primary/30")}>
+                <p className="font-semibold text-foreground">{n.title}</p>
+                <p className="text-muted-foreground mt-0.5">{n.message}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* ROW 2: TABLE PESANAN + STATUS PENGRAJIN */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card className="p-0 overflow-hidden h-full">
+            <div className="flex items-center justify-between px-2 py-3">
+              <h2 className="text-lg font-bold text-foreground px-2">Pesanan Terbaru</h2>
+              <button onClick={() => navigate("/admin/orders")} className="text-sm font-medium text-secondary hover:text-secondary/80 px-2">Lihat semua →</button>
+            </div>
             <div className="w-full overflow-x-auto">
               <Table className="text-[11px] min-w-[600px] lg:min-w-full">
                 <TableHeader>
@@ -162,7 +303,7 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {recent.length === 0 && (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8 text-xs">Belum ada order aktif.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8 text-xs">Belum ada order.</TableCell></TableRow>
                   )}
                   {recent.map((o) => {
                     const days = daysUntil(o.deadline);
@@ -188,7 +329,7 @@ export default function AdminDashboard() {
                         <TableCell className="text-center px-2 py-2.5">
                           <div className="flex justify-center scale-90 origin-center"><StatusBadge status={o.status} /></div>
                         </TableCell>
-                        <TableCell className={cn("text-center px-2 py-2.5 font-medium", days <= 5 && (o.fastTrack ? "text-destructive font-semibold" : "text-warning font-semibold"))}>
+                        <TableCell className={cn("text-center px-2 py-2.5 font-medium", days <= 1 ? "text-destructive font-semibold" : days <= 3 ? "text-warning font-semibold" : "")}>
                           H-{days}
                         </TableCell>
                       </TableRow>
@@ -200,51 +341,32 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* --- STATUS PENGRAJIN & NOTIFIKASI (Sama seperti kode asli) --- */}
-        <div className="space-y-4">
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="h-4 w-4 text-secondary" />
-              <h2 className="font-bold text-foreground">Status Pengrajin</h2>
-            </div>
-            <div className="space-y-2.5">
-              {pengrajin.map((p) => {
-                const active = activeTaskMap.get(p.id) ?? 0;
-                const cap = p.capacity ?? 5;
-                let status = getCraftsmanStatus(p, active);
-                if (cap === 0 && active === 0) status = "available";
-                return (
-                  <div key={p.id} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{active}/{cap} tugas</p>
-                    </div>
-                    <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-semibold", status === "busy" ? "bg-destructive/15 text-destructive" : status === "inactive" ? "bg-muted text-muted-foreground" : "bg-success/15 text-success")}>
-                      <span className={cn("h-1.5 w-1.5 rounded-full", status === "busy" ? "bg-destructive" : status === "inactive" ? "bg-muted-foreground" : "bg-success")} />
-                      {status === "busy" ? "Sibuk" : status === "inactive" ? "Nonaktif" : "Tersedia"}
-                    </span>
+        <Card className="p-5 flex flex-col h-full">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="h-4 w-4 text-secondary" />
+            <h2 className="font-bold text-foreground">Status Pengrajin</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-2.5">
+            {pengrajin.map((p) => {
+              const active = activeTaskMap.get(p.id) ?? 0;
+              const cap = p.capacity ?? 5;
+              let status = getCraftsmanStatus(p, active);
+              if (cap === 0 && active === 0) status = "available";
+              return (
+                <div key={p.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{active}/{cap} tugas</p>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Bell className="h-4 w-4 text-secondary" />
-              <h2 className="font-bold text-foreground">Notifikasi Terbaru</h2>
-            </div>
-            <div className="space-y-2">
-              {allNotifs.length === 0 && <p className="text-sm text-muted-foreground">Tidak ada notifikasi.</p>}
-              {allNotifs.map((n) => (
-                <div key={n.id} className={cn("p-2.5 rounded-lg text-xs", n.read ? "bg-muted/50" : "bg-primary/10 border border-primary/30")}>
-                  <p className="font-semibold text-foreground">{n.title}</p>
-                  <p className="text-muted-foreground mt-0.5">{n.message}</p>
+                  <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-semibold", status === "busy" ? "bg-destructive/15 text-destructive" : status === "inactive" ? "bg-muted text-muted-foreground" : "bg-success/15 text-success")}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", status === "busy" ? "bg-destructive" : status === "inactive" ? "bg-muted-foreground" : "bg-success")} />
+                    {status === "busy" ? "Sibuk" : status === "inactive" ? "Nonaktif" : "Tersedia"}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+              );
+            })}
+          </div>
+        </Card>
       </div>
     </div>
   );

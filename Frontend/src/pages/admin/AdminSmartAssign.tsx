@@ -75,7 +75,7 @@ export default function AdminSmartAssign() {
                   <p className="text-sm font-semibold text-foreground mt-0.5 truncate">
                     {subtask.partName} <span className="text-muted-foreground font-normal">— {order.productName}</span>
                   </p>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <p className={cn("text-[11px] flex items-center gap-1 mt-0.5", daysToDeadline <= 1 ? "text-destructive font-semibold" : daysToDeadline <= 3 ? "text-warning font-semibold" : "text-muted-foreground")}>
                     <Calendar className="h-3 w-3" /> H-{daysToDeadline}
                   </p>
                 </button>
